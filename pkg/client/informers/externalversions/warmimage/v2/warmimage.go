@@ -19,9 +19,10 @@ limitations under the License.
 package v2
 
 import (
+	"context"
 	time "time"
 
-	warmimage_v2 "github.com/mattmoor/warm-image/pkg/apis/warmimage/v2"
+	warmimagev2 "github.com/mattmoor/warm-image/pkg/apis/warmimage/v2"
 	versioned "github.com/mattmoor/warm-image/pkg/client/clientset/versioned"
 	internalinterfaces "github.com/mattmoor/warm-image/pkg/client/informers/externalversions/internalinterfaces"
 	v2 "github.com/mattmoor/warm-image/pkg/client/listers/warmimage/v2"
@@ -61,16 +62,16 @@ func NewFilteredWarmImageInformer(client versioned.Interface, namespace string, 
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.MattmoorV2().WarmImages(namespace).List(options)
+				return client.MattmoorV2().WarmImages(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.MattmoorV2().WarmImages(namespace).Watch(options)
+				return client.MattmoorV2().WarmImages(namespace).Watch(context.TODO(), options)
 			},
 		},
-		&warmimage_v2.WarmImage{},
+		&warmimagev2.WarmImage{},
 		resyncPeriod,
 		indexers,
 	)
@@ -81,7 +82,7 @@ func (f *warmImageInformer) defaultInformer(client versioned.Interface, resyncPe
 }
 
 func (f *warmImageInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&warmimage_v2.WarmImage{}, f.defaultInformer)
+	return f.factory.InformerFor(&warmimagev2.WarmImage{}, f.defaultInformer)
 }
 
 func (f *warmImageInformer) Lister() v2.WarmImageLister {

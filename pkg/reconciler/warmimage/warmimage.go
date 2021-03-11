@@ -19,24 +19,28 @@ package warmimage
 import (
 	"context"
 	"fmt"
+	"os"
 
-	"github.com/knative/pkg/controller"
-	"github.com/knative/pkg/logging/logkey"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	extv1beta1informers "k8s.io/client-go/informers/extensions/v1beta1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/cache"
+	kubeclient "knative.dev/pkg/client/injection/kube/client"
+	daemonsetinformer "knative.dev/pkg/client/injection/kube/informers/apps/v1/daemonset"
+	"knative.dev/pkg/configmap"
+	"knative.dev/pkg/controller"
+	"knative.dev/pkg/logging"
 
-	extlisters "k8s.io/client-go/listers/extensions/v1beta1"
+	extlisters "k8s.io/client-go/listers/apps/v1"
 
 	warmimagev2 "github.com/mattmoor/warm-image/pkg/apis/warmimage/v2"
 	clientset "github.com/mattmoor/warm-image/pkg/client/clientset/versioned"
 	warmimagescheme "github.com/mattmoor/warm-image/pkg/client/clientset/versioned/scheme"
-	informers "github.com/mattmoor/warm-image/pkg/client/informers/externalversions/warmimage/v2"
+	clients "github.com/mattmoor/warm-image/pkg/client/injection/client"
+	informers "github.com/mattmoor/warm-image/pkg/client/injection/informers/warmimage/v2/warmimage"
 	listers "github.com/mattmoor/warm-image/pkg/client/listers/warmimage/v2"
 	"github.com/mattmoor/warm-image/pkg/reconciler/warmimage/resources"
 )
@@ -73,31 +77,26 @@ func init() {
 }
 
 // NewController returns a new warmimage controller
-func NewController(
-	logger *zap.SugaredLogger,
-	kubeclientset kubernetes.Interface,
-	warmimageclientset clientset.Interface,
-	daemonsetInformer extv1beta1informers.DaemonSetInformer,
-	warmimageInformer informers.WarmImageInformer,
-	sleeperImage string,
-) *controller.Impl {
+func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 
 	// Enrich the logs with controller name
-	logger = logger.Named(controllerAgentName).With(zap.String(logkey.ControllerType, controllerAgentName))
+	logger := logging.FromContext(ctx)
+	warmImageInformer := informers.Get(ctx)
+	daemonsetInformer := daemonsetinformer.Get(ctx)
 
 	r := &Reconciler{
-		kubeclientset:      kubeclientset,
-		warmimageclientset: warmimageclientset,
+		kubeclientset:      kubeclient.Get(ctx),
+		warmimageclientset: clients.Get(ctx),
 		daemonsetsLister:   daemonsetInformer.Lister(),
-		warmimagesLister:   warmimageInformer.Lister(),
-		sleeperImage:       sleeperImage,
+		warmimagesLister:   warmImageInformer.Lister(),
+		sleeperImage:       os.Getenv("SLEEPER_IMAGE"),
 		Logger:             logger,
 	}
 	impl := controller.NewImpl(r, logger, "WarmImages")
 
 	logger.Info("Setting up event handlers")
 	// Set up an event handler for when WarmImage resources change
-	warmimageInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	warmImageInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    impl.Enqueue,
 		UpdateFunc: controller.PassNew(impl.Enqueue),
 	})
@@ -142,7 +141,7 @@ func (c *Reconciler) reconcileDaemonSet(ctx context.Context, wi *warmimagev2.War
 	// If none exist, create one.
 	case len(dss) == 0:
 		ds := resources.MakeDaemonSet(wi, c.sleeperImage)
-		ds, err = c.kubeclientset.ExtensionsV1beta1().DaemonSets(wi.Namespace).Create(ds)
+		ds, err = c.kubeclientset.AppsV1().DaemonSets(wi.Namespace).Create(ctx, ds, metav1.CreateOptions{})
 		if err != nil {
 			return err
 		}
@@ -154,10 +153,12 @@ func (c *Reconciler) reconcileDaemonSet(ctx context.Context, wi *warmimagev2.War
 	}
 
 	// Delete any older versions of this WarmImage.
-	propPolicy := metav1.DeletePropagationForeground
+	//propPolicy := metav1.DeletePropagationForeground
 	err = c.kubeclientset.ExtensionsV1beta1().DaemonSets(wi.Namespace).DeleteCollection(
-		&metav1.DeleteOptions{PropagationPolicy: &propPolicy},
-		metav1.ListOptions{LabelSelector: resources.MakeOldVersionLabelSelector(wi).String()},
+		ctx,
+		metav1.DeleteOptions{},
+		metav1.ListOptions{
+			LabelSelector: resources.MakeOldVersionLabelSelector(wi).String()},
 	)
 	if err != nil {
 		return err

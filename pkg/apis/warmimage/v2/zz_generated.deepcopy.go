@@ -57,7 +57,7 @@ func (in *WarmImage) DeepCopyObject() runtime.Object {
 func (in *WarmImageList) DeepCopyInto(out *WarmImageList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]WarmImage, len(*in))
@@ -91,12 +91,8 @@ func (in *WarmImageSpec) DeepCopyInto(out *WarmImageSpec) {
 	*out = *in
 	if in.ImagePullSecrets != nil {
 		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(v1.LocalObjectReference)
-			**out = **in
-		}
+		*out = new(v1.LocalObjectReference)
+		**out = **in
 	}
 	return
 }

@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v2 "github.com/mattmoor/warm-image/pkg/apis/warmimage/v2"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -39,7 +41,7 @@ var warmimagesResource = schema.GroupVersionResource{Group: "mattmoor.io", Versi
 var warmimagesKind = schema.GroupVersionKind{Group: "mattmoor.io", Version: "v2", Kind: "WarmImage"}
 
 // Get takes name of the warmImage, and returns the corresponding warmImage object, and an error if there is any.
-func (c *FakeWarmImages) Get(name string, options v1.GetOptions) (result *v2.WarmImage, err error) {
+func (c *FakeWarmImages) Get(ctx context.Context, name string, options v1.GetOptions) (result *v2.WarmImage, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(warmimagesResource, c.ns, name), &v2.WarmImage{})
 
@@ -50,7 +52,7 @@ func (c *FakeWarmImages) Get(name string, options v1.GetOptions) (result *v2.War
 }
 
 // List takes label and field selectors, and returns the list of WarmImages that match those selectors.
-func (c *FakeWarmImages) List(opts v1.ListOptions) (result *v2.WarmImageList, err error) {
+func (c *FakeWarmImages) List(ctx context.Context, opts v1.ListOptions) (result *v2.WarmImageList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(warmimagesResource, warmimagesKind, c.ns, opts), &v2.WarmImageList{})
 
@@ -62,7 +64,7 @@ func (c *FakeWarmImages) List(opts v1.ListOptions) (result *v2.WarmImageList, er
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v2.WarmImageList{}
+	list := &v2.WarmImageList{ListMeta: obj.(*v2.WarmImageList).ListMeta}
 	for _, item := range obj.(*v2.WarmImageList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
@@ -72,14 +74,14 @@ func (c *FakeWarmImages) List(opts v1.ListOptions) (result *v2.WarmImageList, er
 }
 
 // Watch returns a watch.Interface that watches the requested warmImages.
-func (c *FakeWarmImages) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeWarmImages) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(warmimagesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a warmImage and creates it.  Returns the server's representation of the warmImage, and an error, if there is any.
-func (c *FakeWarmImages) Create(warmImage *v2.WarmImage) (result *v2.WarmImage, err error) {
+func (c *FakeWarmImages) Create(ctx context.Context, warmImage *v2.WarmImage, opts v1.CreateOptions) (result *v2.WarmImage, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(warmimagesResource, c.ns, warmImage), &v2.WarmImage{})
 
@@ -90,7 +92,7 @@ func (c *FakeWarmImages) Create(warmImage *v2.WarmImage) (result *v2.WarmImage, 
 }
 
 // Update takes the representation of a warmImage and updates it. Returns the server's representation of the warmImage, and an error, if there is any.
-func (c *FakeWarmImages) Update(warmImage *v2.WarmImage) (result *v2.WarmImage, err error) {
+func (c *FakeWarmImages) Update(ctx context.Context, warmImage *v2.WarmImage, opts v1.UpdateOptions) (result *v2.WarmImage, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(warmimagesResource, c.ns, warmImage), &v2.WarmImage{})
 
@@ -100,8 +102,20 @@ func (c *FakeWarmImages) Update(warmImage *v2.WarmImage) (result *v2.WarmImage, 
 	return obj.(*v2.WarmImage), err
 }
 
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *FakeWarmImages) UpdateStatus(ctx context.Context, warmImage *v2.WarmImage, opts v1.UpdateOptions) (*v2.WarmImage, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(warmimagesResource, "status", c.ns, warmImage), &v2.WarmImage{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v2.WarmImage), err
+}
+
 // Delete takes name of the warmImage and deletes it. Returns an error if one occurs.
-func (c *FakeWarmImages) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeWarmImages) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(warmimagesResource, c.ns, name), &v2.WarmImage{})
 
@@ -109,17 +123,17 @@ func (c *FakeWarmImages) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeWarmImages) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(warmimagesResource, c.ns, listOptions)
+func (c *FakeWarmImages) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(warmimagesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v2.WarmImageList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched warmImage.
-func (c *FakeWarmImages) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v2.WarmImage, err error) {
+func (c *FakeWarmImages) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v2.WarmImage, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(warmimagesResource, c.ns, name, data, subresources...), &v2.WarmImage{})
+		Invokes(testing.NewPatchSubresourceAction(warmimagesResource, c.ns, name, pt, data, subresources...), &v2.WarmImage{})
 
 	if obj == nil {
 		return nil, err

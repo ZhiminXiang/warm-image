@@ -26,18 +26,29 @@ spec:
   version: v2
 
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata: {name: warmimage-controller, namespace: warmimage-system}
 spec:
+  selector:
+    matchLabels:
+      app: warmimage-controller
   replicas: 1
   template:
     metadata:
       labels: {app: warmimage-controller}
     spec:
       containers:
-      - args: [-logtostderr=true, -stderrthreshold=INFO, -sleeper, 'gcr.io/mattmoor-public/sleeper@sha256:d431f1c78bb16fbb0c9831a610bc9580379a4f9ab0a339efd2ffb36ea5ffeca2']
-        image: gcr.io/mattmoor-public/warmimage-controller@sha256:5adc366a59c83b0bb12b424c86ea89a6f996fb089eefb5870d96cf242d7d4926
+      - args:
+        - "-disable-ha=true"
+        image: ko://github.com/mattmoor/warm-image/cmd/controller
         name: warmimage-controller
+        env:
+        - name: SLEEPER_IMAGE
+          value: gcr.io/zhiminx-prod-test/sleeper-ebdb8b8b13d4bbe1d3592de055016d37
+        - name: SYSTEM_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
       serviceAccountName: warmimage-controller
 

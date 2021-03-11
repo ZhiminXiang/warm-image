@@ -23,7 +23,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/knative/pkg/logging"
+	"knative.dev/pkg/logging"
 )
 
 var (

@@ -18,8 +18,11 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+source $(dirname $0)/../vendor/knative.dev/hack/codegen-library.sh
+
 SCRIPT_ROOT=$(dirname ${BASH_SOURCE})/..
 CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-generator 2>/dev/null || echo ../../../k8s.io/code-generator)}
+boilerplate="${REPO_ROOT_DIR}/hack/boilerplate/boilerplate.go.txt"
 
 # generate the code with:
 # --output-base    because this script should also be able to run inside the vendor dir of
@@ -31,5 +34,12 @@ ${CODEGEN_PKG}/generate-groups.sh "deepcopy,client,informer,lister" \
   --go-header-file ${SCRIPT_ROOT}/hack/boilerplate/boilerplate.go.txt
 
 
+# Knative Injection
+${KNATIVE_CODEGEN_PKG}/hack/generate-knative.sh "injection" \
+  github.com/mattmoor/warm-image/pkg/client github.com/mattmoor/warm-image/pkg/apis \
+  "warmimage:v2" \
+  --go-header-file "${boilerplate}"
+
+
 # Make sure our dependencies are up-to-date
-${SCRIPT_ROOT}/hack/update-deps.sh
+# ${SCRIPT_ROOT}/hack/update-deps.sh

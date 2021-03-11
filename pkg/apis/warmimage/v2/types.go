@@ -22,7 +22,7 @@ import (
 )
 
 // +genclient
-// +genclient:noStatus
+// +genreconciler
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // WarmImage is a specification for a WarmImage resource

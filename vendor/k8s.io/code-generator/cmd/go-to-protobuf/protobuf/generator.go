@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog/v2"
 
 	"k8s.io/gengo/generator"
 	"k8s.io/gengo/namer"
@@ -85,7 +85,7 @@ func (g *genProtoIDL) Filter(c *generator.Context, t *types.Type) bool {
 			// Type specified "true".
 			return true
 		}
-		glog.Fatalf(`Comment tag "protobuf" must be true or false, found: %q`, tagVals[0])
+		klog.Fatalf(`Comment tag "protobuf" must be true or false, found: %q`, tagVals[0])
 	}
 	if !g.generateAll {
 		// We're not generating everything.
@@ -371,7 +371,7 @@ func (b bodyGen) doStruct(sw *generator.SnippetWriter) error {
 `, b.t)
 
 	if len(options) > 0 {
-		sort.Sort(sort.StringSlice(options))
+		sort.Strings(options)
 		for _, s := range options {
 			fmt.Fprintf(out, "  option %s;\n", s)
 		}
@@ -399,7 +399,7 @@ func (b bodyGen) doStruct(sw *generator.SnippetWriter) error {
 				}
 				extras = append(extras, fmt.Sprintf("%s = %s", k, v))
 			}
-			sort.Sort(sort.StringSlice(extras))
+			sort.Strings(extras)
 			if len(extras) > 0 {
 				fmt.Fprintf(out, " [")
 				fmt.Fprint(out, strings.Join(extras, ", "))
@@ -724,6 +724,10 @@ func genComment(out io.Writer, lines []string, indent string) {
 		lines = lines[:l-1]
 	}
 	for _, c := range lines {
+		if len(c) == 0 {
+			fmt.Fprintf(out, "%s//\n", indent) // avoid trailing whitespace
+			continue
+		}
 		fmt.Fprintf(out, "%s// %s\n", indent, c)
 	}
 }

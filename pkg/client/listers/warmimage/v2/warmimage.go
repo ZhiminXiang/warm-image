@@ -26,8 +26,10 @@ import (
 )
 
 // WarmImageLister helps list WarmImages.
+// All objects returned here must be treated as read-only.
 type WarmImageLister interface {
 	// List lists all WarmImages in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v2.WarmImage, err error)
 	// WarmImages returns an object that can list and get WarmImages.
 	WarmImages(namespace string) WarmImageNamespaceLister
@@ -58,10 +60,13 @@ func (s *warmImageLister) WarmImages(namespace string) WarmImageNamespaceLister 
 }
 
 // WarmImageNamespaceLister helps list and get WarmImages.
+// All objects returned here must be treated as read-only.
 type WarmImageNamespaceLister interface {
 	// List lists all WarmImages in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v2.WarmImage, err error)
 	// Get retrieves the WarmImage from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v2.WarmImage, error)
 	WarmImageNamespaceListerExpansion
 }

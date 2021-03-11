@@ -17,8 +17,8 @@ limitations under the License.
 package resources
 
 import (
+	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -71,12 +71,12 @@ func userContainer(image string) corev1.Container {
 	}
 }
 
-func MakeDaemonSet(wi *warmimagev2.WarmImage, sleeperImage string) *extv1beta1.DaemonSet {
+func MakeDaemonSet(wi *warmimagev2.WarmImage, sleeperImage string) *v1.DaemonSet {
 	ips := []corev1.LocalObjectReference{}
 	if wi.Spec.ImagePullSecrets != nil {
 		ips = append(ips, *wi.Spec.ImagePullSecrets)
 	}
-	return &extv1beta1.DaemonSet{
+	return &v1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: wi.Name,
 			Labels:       MakeLabels(wi),
@@ -84,7 +84,10 @@ func MakeDaemonSet(wi *warmimagev2.WarmImage, sleeperImage string) *extv1beta1.D
 				*metav1.NewControllerRef(wi, warmimagev2.SchemeGroupVersion.WithKind("WarmImage")),
 			},
 		},
-		Spec: extv1beta1.DaemonSetSpec{
+		Spec: v1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: MakeLabels(wi),
+			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: MakeLabels(wi),
